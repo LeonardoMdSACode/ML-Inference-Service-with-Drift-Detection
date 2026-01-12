@@ -1,1 +1,52 @@
-# Evidently embed + metrics
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ML Inference Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <h1>ML Inference Service</h1>
+    
+    <form id="upload-form" action="/predict" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".csv" required>
+        <button type="submit">Run Prediction</button>
+    </form>
+
+    <h2>Predictions</h2>
+    <div id="predictions"></div>
+
+    <h2>Drift Metrics</h2>
+    <div id="drift-chart"></div>
+
+    <script>
+        async function fetchResults(csvFile) {
+            const formData = new FormData();
+            formData.append("file", csvFile);
+
+            const response = await fetch("/predict", { method: "POST", body: formData });
+            const data = await response.json();
+
+            // Show predictions
+            document.getElementById("predictions").innerHTML = 
+                `<pre>${JSON.stringify(data.predictions, null, 2)}</pre>`;
+
+            // Show simplified drift chart
+            const drift = data.drift || [];
+            const cols = drift.map(d => d.column);
+            const scores = drift.map(d => d.score);
+
+            const trace = { x: cols, y: scores, type: 'bar' };
+            Plotly.newPlot('drift-chart', [trace]);
+        }
+
+        document.getElementById("upload-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const fileInput = e.target.file.files[0];
+            if (fileInput) await fetchResults(fileInput);
+        });
+    </script>
+</body>
+</html>
+

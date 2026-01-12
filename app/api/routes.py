@@ -1,7 +1,9 @@
 # app/api/routes.py
 # /predict, /health, /dashboard, /monitoring/run
 
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, UploadFile, File, Request
+from fastapi.responses import JSONResponse
+from fastapi.templating import Jinja2Templates
 from app.api.schemas import PredictionRequest, PredictionResponse
 from app.inference.predictor import Predictor
 from app.core.logging import log_prediction
@@ -9,22 +11,36 @@ from app.monitoring.data_loader import load_production_data
 from app.monitoring.drift import run_drift_check
 from app.monitoring.governance import run_governance_checks
 import pandas as pd
+import os
+from app.core.templates import templates
+from fastapi.templating import Jinja2Templates
+
+templates = Jinja2Templates(directory="app/templates")
 
 router = APIRouter()
 predictor = Predictor()
 
 
-@router.post("/predict", response_model=PredictionResponse)
-def predict(request: PredictionRequest):
-    payload = request.dict()
-    prediction, probability = predictor.predict(payload)
+# Endpoint for CSV upload & prediction with drift
+@router.post("/predict")
+async def predict_file(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...)
+):
+    df = pd.read_csv(file.file)
+    predictions, probability = predictor.predict(df)
 
-    log_prediction(payload, prediction, probability)
+    reference_df = pd.read_csv("models/v1/reference_data.csv")
+    background_tasks.add_task(
+        run_drift_check, df, reference_df, "v1"
+    )
 
-    return {
-        "prediction": prediction,
-        "probability": probability
-    }
+    return JSONResponse({
+        "predictions": predictions.tolist() if hasattr(predictions, "tolist") else predictions,
+        "drift": "scheduled"
+    })
+
+
 
 
 @router.get("/health")
@@ -45,7 +61,7 @@ def run_drift():
 @router.get("/monitoring/run")
 def monitoring_run(background_tasks: BackgroundTasks, model_version: str = "v1"):
     """
-    Step 6: Run production monitoring including drift + governance checks in background.
+    Run production monitoring including drift + governance checks in background.
     """
     # Load current and reference data
     current_data = pd.read_csv("data/processed/current_data.csv")
@@ -56,3 +72,12 @@ def monitoring_run(background_tasks: BackgroundTasks, model_version: str = "v1")
     background_tasks.add_task(run_governance_checks, current_data, model_version=model_version)
 
     return {"status": "monitoring triggered", "model_version": model_version}
+
+
+# Dashboard endpoint
+@router.get("/dashboard")
+def dashboard(request: Request):
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {"request": request}
+    )
