@@ -4,6 +4,7 @@ import os
 import pandas as pd
 from evidently.report import Report
 from evidently.metric_preset import DataDriftPreset
+from app.monitoring.governance import Governance
 
 REFERENCE_DATA_PATH = "models/v1/reference_data.csv"
 REPORT_DIR = "reports/evidently"
@@ -27,3 +28,20 @@ def run_drift_check(current_df: pd.DataFrame):
     report.save_html(REPORT_PATH)
 
     return REPORT_PATH
+
+# Thresholds configuration
+thresholds = {
+    "psi": 0.2,
+    "accuracy_drop": 0.05,
+    "f1": 0.7
+}
+
+governance = Governance(thresholds=thresholds)
+
+def run_drift_check(current_data, reference_data, model_version="v1"):
+    report = Report(metrics=[DataDriftPreset()])
+    report.run(current_data=current_data, reference_data=reference_data)
+
+    # Governance check
+    alerts = governance.check_metrics(report.as_dict(), model_version=model_version)
+    return alerts

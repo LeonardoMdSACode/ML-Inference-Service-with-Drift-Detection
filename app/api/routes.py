@@ -6,6 +6,7 @@ from app.inference.predictor import Predictor
 from app.core.logging import log_prediction
 from app.monitoring.data_loader import load_production_data
 from app.monitoring.drift import run_drift_check
+import pandas as pd
 
 
 router = APIRouter()
@@ -38,3 +39,12 @@ def run_drift():
         "status": "drift_check_completed",
         "report_path": report_path
     }
+
+@router.get("/monitoring/run")
+def monitoring_run():
+    # Example: load some data
+    current_data = pd.read_csv("data/current.csv")
+    reference_data = pd.read_csv("data/reference.csv")
+
+    alerts = run_drift_check(current_data, reference_data, model_version="v1")
+    return {"alerts": alerts}
