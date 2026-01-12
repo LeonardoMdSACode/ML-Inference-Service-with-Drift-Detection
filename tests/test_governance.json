@@ -1,0 +1,13 @@
+{
+  "metrics": {
+    "DataDriftPreset": {
+      "result": {"dataset_drift": 0.25}
+    },
+    "ClassificationPreset": {
+      "result": {"f1_score": 0.65}
+    },
+    "RegressionPreset": {
+      "result": {"accuracy_drop": 0.06}
+    }
+  }
+}
