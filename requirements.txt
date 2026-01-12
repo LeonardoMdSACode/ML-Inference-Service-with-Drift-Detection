@@ -1,0 +1,5 @@
+evidently==0.4.15
+fastapi
+uvicorn
+pandas
+scikit-learn

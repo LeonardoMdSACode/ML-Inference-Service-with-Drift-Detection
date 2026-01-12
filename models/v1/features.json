@@ -1,0 +1,10 @@
+[
+  "credit_limit",
+  "age",
+  "pay_delay_sep",
+  "pay_delay_aug",
+  "bill_amt_sep",
+  "bill_amt_aug",
+  "pay_amt_sep",
+  "pay_amt_aug"
+]
