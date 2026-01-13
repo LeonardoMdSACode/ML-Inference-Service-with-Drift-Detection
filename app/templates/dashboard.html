@@ -20,33 +20,49 @@
     <h2>Drift Metrics</h2>
     <div id="drift-chart"></div>
 
-    <script>
-        async function fetchResults(csvFile) {
-            const formData = new FormData();
-            formData.append("file", csvFile);
+<script>
+    async function fetchResults(csvFile) {
+        const formData = new FormData();
+        formData.append("file", csvFile);
 
-            const response = await fetch("/predict", { method: "POST", body: formData });
-            const data = await response.json();
-
-            // Show predictions
-            document.getElementById("predictions").innerHTML = 
-                `<pre>${JSON.stringify(data.predictions, null, 2)}</pre>`;
-
-            // Show simplified drift chart
-            const drift = data.drift || [];
-            const cols = drift.map(d => d.column);
-            const scores = drift.map(d => d.score);
-
-            const trace = { x: cols, y: scores, type: 'bar' };
-            Plotly.newPlot('drift-chart', [trace]);
-        }
-
-        document.getElementById("upload-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const fileInput = e.target.file.files[0];
-            if (fileInput) await fetchResults(fileInput);
+        const response = await fetch("/predict", {
+            method: "POST",
+            body: formData
         });
-    </script>
+
+        const data = await response.json();
+
+        /* ---- Predictions (FIXED) ---- */
+        document.getElementById("predictions").innerHTML =
+            `<pre>${JSON.stringify(data.predictions, null, 2)}</pre>`;
+
+        /* ---- Drift (GUARDED) ---- */
+        const driftContainer = document.getElementById("drift-chart");
+        driftContainer.innerHTML = "";
+
+        if (Array.isArray(data.drift)) {
+            const cols = data.drift.map(d => d.column);
+            const scores = data.drift.map(d => d.score);
+
+            Plotly.newPlot(driftContainer, [{
+                x: cols,
+                y: scores,
+                type: "bar"
+            }]);
+        } else {
+            driftContainer.innerHTML =
+                "<p>Drift report scheduled. Open the Evidently HTML report.</p>";
+        }
+    }
+
+    document.getElementById("upload-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const fileInput = e.target.file.files[0];
+        if (fileInput) {
+            await fetchResults(fileInput);
+        }
+    });
+</script>
 </body>
 </html>
 

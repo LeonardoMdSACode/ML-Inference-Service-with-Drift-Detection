@@ -12,8 +12,8 @@ class Predictor:
         with open(FEATURES_PATH, "r") as f:
             self.features = json.load(f)
 
-    def predict(self, payload: dict):
-        X = np.array([[payload[f] for f in self.features]])
-        proba = self.model.predict_proba(X)[0, 1]
-        pred = int(proba >= 0.5)
-        return pred, float(proba)
+    def predict(self, df):
+        X = df[self.features]
+        probas = self.model.predict_proba(X)[:, 1]
+        preds = (probas >= 0.5).astype(int)
+        return preds.tolist(), probas.tolist()
