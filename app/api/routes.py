@@ -11,6 +11,7 @@ from app.monitoring.drift import run_drift_check
 from app.monitoring.governance import run_governance_checks
 
 import pandas as pd
+import numpy as np  # needed for handling list/nested drift scores
 
 templates = Jinja2Templates(directory="app/templates")
 
@@ -50,16 +51,52 @@ async def predict_file(
             )
         })
 
-    # ---- Drift scheduled in background ----
+    # ---- Drift: run once immediately to return chart data ----
     reference_df = pd.read_csv("models/v1/reference_data.csv")
+
+    # run_drift_check returns (report_path, drift_dict)
+    _, drift_dict = run_drift_check(df[predictor.features], reference_df[predictor.features], "v1")
+
+    # Handle float, list/array, or nested dict drift scores safely
+    drift_for_chart = []
+    for col, score in drift_dict.items():
+        score_value = 0.01  # default minimal value
+        if isinstance(score, dict):
+            numeric_values = []
+
+            def extract_numbers(d):
+                for v in d.values():
+                    if isinstance(v, (int, float)):
+                        numeric_values.append(v)
+                    elif isinstance(v, dict):
+                        extract_numbers(v)
+                    elif isinstance(v, (list, np.ndarray)):
+                        numeric_values.extend([float(x) for x in v if isinstance(x, (int, float))])
+
+            extract_numbers(score)
+            if numeric_values:
+                score_value = float(np.mean(numeric_values))
+        elif isinstance(score, (list, np.ndarray)):
+            score_value = float(np.mean([s for s in score if isinstance(s, (int, float))]))
+        elif isinstance(score, (int, float)):
+            score_value = float(score)
+
+        # ensure finite number
+        score_value = float(np.nan_to_num(score_value, nan=0.01, posinf=1.0, neginf=0.01))
+        drift_for_chart.append({"column": col, "score": max(score_value, 0.01)})
+
+    # Schedule full drift in background as before
     background_tasks.add_task(
-        run_drift_check, df[predictor.features], reference_df[predictor.features], "v1"
+        run_drift_check,
+        df[predictor.features],
+        reference_df[predictor.features],
+        "v1"
     )
 
     return JSONResponse({
         "n_rows": len(results),
         "results": results,
-        "drift": "scheduled"
+        "drift": drift_for_chart
     })
 
 

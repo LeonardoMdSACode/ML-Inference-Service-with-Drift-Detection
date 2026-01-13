@@ -32,11 +32,10 @@
 
         const data = await response.json();
 
-        /* ---- Predictions (FIXED) ---- */
+        /* ✅ FIX: API returns `results`, not `predictions` */
         document.getElementById("predictions").innerHTML =
-            `<pre>${JSON.stringify(data.predictions, null, 2)}</pre>`;
+            `<pre>${JSON.stringify(data.results, null, 2)}</pre>`;
 
-        /* ---- Drift (GUARDED) ---- */
         const driftContainer = document.getElementById("drift-chart");
         driftContainer.innerHTML = "";
 
@@ -65,4 +64,3 @@
 </script>
 </body>
 </html>
-
