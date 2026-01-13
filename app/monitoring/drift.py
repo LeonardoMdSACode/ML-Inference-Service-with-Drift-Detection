@@ -1,4 +1,4 @@
-# Evidently logic
+# app/monitoring/drift.py
 import os
 import pandas as pd
 from evidently.report import Report
@@ -23,7 +23,7 @@ def run_drift_check(current_data: pd.DataFrame, reference_data: pd.DataFrame, mo
     """
     Run Evidently DataDriftPreset on current vs reference data,
     save HTML report, and run governance checks.
-    Returns a tuple: (alerts, report_metrics)
+    Returns a tuple: (alerts, drift_scores)
     """
     os.makedirs(REPORT_DIR, exist_ok=True)
 
@@ -34,10 +34,22 @@ def run_drift_check(current_data: pd.DataFrame, reference_data: pd.DataFrame, mo
     # Extract numeric drift scores per column
     report_dict = report.as_dict() if hasattr(report, "as_dict") else {}
     drift_scores = {}
-    for metric in report_dict.get("metrics", []):
-        if metric["metric"] == "DataDriftMetric":
-            for col_name, col_data in metric["result"].get("dataset_drift", {}).items():
-                drift_scores[col_name] = col_data.get("drift_score", 0.0)
+
+    metrics_list = report_dict.get("metrics", [])
+
+    for metric in metrics_list:
+        result = metric.get("result", {})
+        # Check column-level drift
+        drift_by_columns = result.get("drift_by_columns", {})
+        if drift_by_columns:
+            for col, info in drift_by_columns.items():
+                score = info.get("drift_score", 0.0)
+                if score is None or not pd.notna(score):
+                    score = 0.0
+                drift_scores[col] = float(score)
+        # fallback: Dataset-level drift metric (PSI share)
+        elif metric.get("metric") == "DatasetDriftMetric":
+            drift_scores["dataset"] = float(result.get("share_of_drifted_columns", 0.0))
 
     # Run governance checks (keeps existing alerts)
     alerts = governance.check_metrics(report_dict, model_version=model_version)

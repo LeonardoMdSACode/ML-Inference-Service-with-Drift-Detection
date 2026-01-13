@@ -44,14 +44,15 @@ async def predict_file(background_tasks: BackgroundTasks, file: UploadFile = Fil
     # Correctly get numeric drift scores per column
     _, drift_dict = run_drift_check(df[predictor.features], reference_df[predictor.features], "v1")
 
-    # Ensure minimal values for chart and safe numeric handling
+    # Ensure numeric drift values safe for frontend Plotly chart
     drift_for_chart = []
     for col, score in drift_dict.items():
         try:
             score_value = float(score)
-            score_value = max(score_value, 0.01)
+            if not np.isfinite(score_value):
+                score_value = 0.0
         except Exception:
-            score_value = 0.01
+            score_value = 0.0
         drift_for_chart.append({"column": col, "score": score_value})
 
     # Schedule full drift in background as before
