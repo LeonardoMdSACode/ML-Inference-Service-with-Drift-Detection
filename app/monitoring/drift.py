@@ -1,5 +1,4 @@
 # Evidently logic
-# app/monitoring/drift.py
 import os
 import pandas as pd
 from evidently.report import Report
@@ -32,10 +31,15 @@ def run_drift_check(current_data: pd.DataFrame, reference_data: pd.DataFrame, mo
     report.run(current_data=current_data, reference_data=reference_data)
     report.save_html(REPORT_PATH)
 
-    # report.as_dict() returns a dict; in newer Evidently versions it can be a list
-    report_metrics = report.as_dict() if hasattr(report, "as_dict") else list(report)
+    # Extract numeric drift scores per column
+    report_dict = report.as_dict() if hasattr(report, "as_dict") else {}
+    drift_scores = {}
+    for metric in report_dict.get("metrics", []):
+        if metric["metric"] == "DataDriftMetric":
+            for col_name, col_data in metric["result"].get("dataset_drift", {}).items():
+                drift_scores[col_name] = col_data.get("drift_score", 0.0)
 
-    # Run governance checks
-    alerts = governance.check_metrics(report_metrics, model_version=model_version)
+    # Run governance checks (keeps existing alerts)
+    alerts = governance.check_metrics(report_dict, model_version=model_version)
 
-    return alerts, report_metrics
+    return alerts, drift_scores
