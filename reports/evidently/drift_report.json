@@ -1,25 +1,6 @@
 {
-  "n_rows": 3,
-  "results": [
-    {
-      "row": 0,
-      "probability": 0.0576,
-      "prediction": "No Default",
-      "risk_level": "Low"
-    },
-    {
-      "row": 1,
-      "probability": 0.2814,
-      "prediction": "No Default",
-      "risk_level": "Low"
-    },
-    {
-      "row": 2,
-      "probability": 0.0481,
-      "prediction": "No Default",
-      "risk_level": "Low"
-    }
-  ],
+  "n_rows": 8,
+  "results": [],
   "drift": [
     {
       "column": "dataset",
@@ -27,35 +8,35 @@
     },
     {
       "column": "age",
-      "score": 0.44474387293503476
+      "score": 0.8679104867707123
     },
     {
       "column": "bill_amt_aug",
-      "score": 0.6359128906609168
+      "score": 0.23085843753803348
     },
     {
       "column": "bill_amt_sep",
-      "score": 0.5786372146880444
+      "score": 0.37457217443848057
     },
     {
       "column": "credit_limit",
-      "score": 0.5490100613355632
+      "score": 0.36873847560130574
     },
     {
       "column": "pay_amt_aug",
-      "score": 1.0090700728243183
+      "score": 0.20876449446182804
     },
     {
       "column": "pay_amt_sep",
-      "score": 0.28309439717741114
+      "score": 0.27529913358402724
     },
     {
       "column": "pay_delay_aug",
-      "score": 1.298651499017585
+      "score": 0.32956762578626103
     },
     {
       "column": "pay_delay_sep",
-      "score": 0.7812979392472955
+      "score": 0.4885655407858251
     }
   ]
 }

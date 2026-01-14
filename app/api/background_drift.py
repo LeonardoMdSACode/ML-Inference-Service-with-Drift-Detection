@@ -13,16 +13,10 @@ REFERENCE_PATH = "models/v1/reference_data.csv"
 PROD_LOG_PATH = "data/production/predictions_log.csv"
 DASHBOARD_JSON = "reports/evidently/drift_report.json"
 
-# Retention policy (VERY IMPORTANT for HF Spaces)
 MAX_ROWS = 5000  # rolling window
-
 os.makedirs(os.path.dirname(DASHBOARD_JSON), exist_ok=True)
 
-
 async def drift_loop(interval_seconds: int = 10):
-    """
-    Continuously compute drift from production inference data.
-    """
     while True:
         try:
             if not os.path.exists(PROD_LOG_PATH):
@@ -30,13 +24,13 @@ async def drift_loop(interval_seconds: int = 10):
                 continue
 
             prod_df = pd.read_csv(PROD_LOG_PATH)
-            
-            # ---- Retention window (prevents infinite growth) ----
+
+            # Retention window
             if len(prod_df) > MAX_ROWS:
                 prod_df = prod_df.tail(MAX_ROWS)
                 prod_df.to_csv(PROD_LOG_PATH, index=False)
 
-            # ---- Keep only rows with all required features ----
+            # Keep only rows with all required features
             missing_features = set(predictor.features) - set(prod_df.columns)
             if missing_features:
                 print(f"Skipping drift check, missing features: {missing_features}")
@@ -50,9 +44,11 @@ async def drift_loop(interval_seconds: int = 10):
 
             reference_df = pd.read_csv(REFERENCE_PATH)
 
-            # ---- FIX: pass reference_df to run_drift_check ----
+            # ---- Run drift on features only ----
             _, drift_dict = run_drift_check(
-                prod_df[predictor.features], reference_df[predictor.features], model_version="v1"
+                prod_df[predictor.features],
+                reference_df[predictor.features],
+                model_version="v1"
             )
 
             dashboard_payload = {
@@ -64,7 +60,6 @@ async def drift_loop(interval_seconds: int = 10):
                 ],
             }
 
-            # Atomic write (prevents frontend race conditions)
             tmp_path = DASHBOARD_JSON + ".tmp"
             with open(tmp_path, "w") as f:
                 json.dump(dashboard_payload, f, indent=2)
