@@ -3,55 +3,69 @@ import asyncio
 import pandas as pd
 import os
 import json
-import numpy as np
 
 from app.monitoring.drift import run_drift_check
 from app.inference.predictor import Predictor
 
 predictor = Predictor()
+
 REFERENCE_PATH = "models/v1/reference_data.csv"
-CURRENT_DATA_PATH = "data/production/predictions_log.csv"
+PROD_LOG_PATH = "data/production/predictions_log.csv"
 DASHBOARD_JSON = "reports/evidently/drift_report.json"
 
-# Ensure folder exists and JSON file exists at startup
-os.makedirs(os.path.dirname(DASHBOARD_JSON), exist_ok=True)
-if not os.path.exists(DASHBOARD_JSON):
-    with open(DASHBOARD_JSON, "w") as f:
-        json.dump({"n_rows": 0, "results": [], "drift": [{"column": feat, "score": 0.0} for feat in predictor.features]}, f, indent=2)
+# Retention policy (VERY IMPORTANT for HF Spaces)
+MAX_ROWS = 5000  # rolling window
 
-async def drift_loop(interval_seconds: int = 30):
+os.makedirs(os.path.dirname(DASHBOARD_JSON), exist_ok=True)
+
+
+async def drift_loop(interval_seconds: int = 10):
     """
-    Continuously run drift checks and update dashboard JSON.
+    Continuously compute drift from production inference data.
     """
     while True:
         try:
-            current_df = pd.read_csv(CURRENT_DATA_PATH)
+            if not os.path.exists(PROD_LOG_PATH):
+                await asyncio.sleep(interval_seconds)
+                continue
+
+            prod_df = pd.read_csv(PROD_LOG_PATH)
+
+            # ---- Retention window (prevents infinite growth) ----
+            if len(prod_df) > MAX_ROWS:
+                prod_df = prod_df.tail(MAX_ROWS)
+                prod_df.to_csv(PROD_LOG_PATH, index=False)
+
+            # ---- Keep only rows with all required features ----
+            missing_features = set(predictor.features) - set(prod_df.columns)
+            if missing_features:
+                print(f"Skipping drift check, missing features: {missing_features}")
+                await asyncio.sleep(interval_seconds)
+                continue
+
+            prod_df = prod_df.dropna(subset=predictor.features)
+            if prod_df.empty:
+                await asyncio.sleep(interval_seconds)
+                continue
+
             reference_df = pd.read_csv(REFERENCE_PATH)
 
             _, drift_dict = run_drift_check(
-                current_df[predictor.features],
+                prod_df[predictor.features],
                 reference_df[predictor.features],
-                "v1"
+                model_version="v1",
             )
 
-            # Ensure numeric safe drift values
-            drift_for_chart = []
-            for col, score in drift_dict.items():
-                try:
-                    val = float(score)
-                    if not np.isfinite(val):
-                        val = 0.0
-                except Exception:
-                    val = 0.0
-                drift_for_chart.append({"column": col, "score": val})
-
             dashboard_payload = {
-                "n_rows": len(current_df),
-                "results": [],  # predictions not included in background loop
-                "drift": drift_for_chart
+                "n_rows": len(prod_df),
+                "results": [],
+                "drift": [
+                    {"column": col, "score": float(score)}
+                    for col, score in drift_dict.items()
+                ],
             }
 
-            # Atomic write to avoid read/write collision
+            # Atomic write (prevents frontend race conditions)
             tmp_path = DASHBOARD_JSON + ".tmp"
             with open(tmp_path, "w") as f:
                 json.dump(dashboard_payload, f, indent=2)

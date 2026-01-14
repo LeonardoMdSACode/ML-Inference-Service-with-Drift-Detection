@@ -60,6 +60,7 @@ async def predict_file(background_tasks: BackgroundTasks, file: UploadFile = Fil
     df_log = df.copy()
     df_log["prediction"] = preds
     df_log["probability"] = probas
+    df_log["risk_level"] = ["High" if p >= 0.75 else "Medium" if p >= 0.5 else "Low" for p in probas]
     df_log["model_version"] = predictor.model_version
     df_log["timestamp"] = pd.Timestamp.utcnow()
 

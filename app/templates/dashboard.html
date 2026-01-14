@@ -14,65 +14,34 @@
         <button type="submit">Run Prediction</button>
     </form>
 
-    <h2>Predictions</h2>
+    <h2>Recent Predictions</h2>
     <div id="predictions"></div>
 
     <h2>Drift Metrics</h2>
     <div id="drift-chart"></div>
 
 <script>
-async function fetchResults(csvFile) {
-    const formData = new FormData();
-    formData.append("file", csvFile);
-
-    const response = await fetch("/predict", { method: "POST", body: formData });
-    const data = await response.json();
-
-    document.getElementById("predictions").innerHTML =
-        `<pre>${JSON.stringify(data.results, null, 2)}</pre>`;
-
-    const driftContainer = document.getElementById("drift-chart");
-    driftContainer.innerHTML = "";
-
-    if (Array.isArray(data.drift)) {
-        const cols = data.drift.map(d => d.column);
-        const scores = data.drift.map(d => {
-            let val = Number(d.score);
-            if (!Number.isFinite(val)) val = 0;
-            return val;
-        });
-
-        Plotly.newPlot(driftContainer, [{
-            x: cols,
-            y: scores,
-            type: "bar"
-        }]);
-    } else {
-        driftContainer.innerHTML =
-            "<p>Drift report scheduled. Open the Evidently HTML report.</p>";
-    }
-}
-
-document.getElementById("upload-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const fileInput = e.target.file.files[0];
-    if (fileInput) {
-        await fetchResults(fileInput);
-    }
-});
-</script>
-<div id="drift-chart"></div>
-
-<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-<script>
 async function fetchDashboardData() {
     try {
         const resp = await fetch("/dashboard/data");
         const json = await resp.json();
+
         if(json.status === "ok") {
-            const driftData = json.data.drift;
+            const data = json.data;
+
+            // Update predictions table
+            const predDiv = document.getElementById("predictions");
+            if(Array.isArray(data.results) && data.results.length > 0){
+                predDiv.innerHTML = "<pre>" + JSON.stringify(data.results, null, 2) + "</pre>";
+            } else {
+                predDiv.innerHTML = "<p>No recent predictions.</p>";
+            }
+
+            // Update drift chart
+            const driftContainer = document.getElementById("drift-chart");
+            const driftData = data.drift || [];
             const columns = driftData.map(d => d.column);
-            const scores = driftData.map(d => d.score);
+            const scores = driftData.map(d => Number(d.score));
 
             const trace = {
                 x: columns,
@@ -87,10 +56,12 @@ async function fetchDashboardData() {
                 xaxis: {title: 'Column'}
             };
 
-            Plotly.newPlot('drift-chart', [trace], layout);
+            Plotly.newPlot(driftContainer, [trace], layout);
+
         } else {
             console.warn("Dashboard data not available:", json.message);
         }
+
     } catch(err) {
         console.error("Failed to fetch dashboard data:", err);
     }
@@ -99,6 +70,21 @@ async function fetchDashboardData() {
 // Fetch every 10 seconds
 fetchDashboardData();
 setInterval(fetchDashboardData, 10000);
+
+// File upload handler
+document.getElementById("upload-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fileInput = e.target.file.files[0];
+    if (fileInput) {
+        const formData = new FormData();
+        formData.append("file", fileInput);
+
+        const response = await fetch("/predict", { method: "POST", body: formData });
+        const data = await response.json();
+        document.getElementById("predictions").innerHTML =
+            `<pre>${JSON.stringify(data.results, null, 2)}</pre>`;
+    }
+});
 </script>
 </body>
 </html>
