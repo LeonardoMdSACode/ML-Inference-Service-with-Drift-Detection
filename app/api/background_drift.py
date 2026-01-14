@@ -30,7 +30,7 @@ async def drift_loop(interval_seconds: int = 10):
                 continue
 
             prod_df = pd.read_csv(PROD_LOG_PATH)
-
+            
             # ---- Retention window (prevents infinite growth) ----
             if len(prod_df) > MAX_ROWS:
                 prod_df = prod_df.tail(MAX_ROWS)
@@ -50,10 +50,9 @@ async def drift_loop(interval_seconds: int = 10):
 
             reference_df = pd.read_csv(REFERENCE_PATH)
 
+            # ---- FIX: pass reference_df to run_drift_check ----
             _, drift_dict = run_drift_check(
-                prod_df[predictor.features],
-                reference_df[predictor.features],
-                model_version="v1",
+                prod_df[predictor.features], reference_df[predictor.features], model_version="v1"
             )
 
             dashboard_payload = {
