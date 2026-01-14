@@ -10,6 +10,7 @@ from app.monitoring.governance import run_governance_checks
 
 import pandas as pd
 import numpy as np
+import json
 import os
 
 templates = Jinja2Templates(directory="app/templates")
@@ -70,7 +71,25 @@ async def predict_file(background_tasks: BackgroundTasks, file: UploadFile = Fil
 
     # ---- Background full drift check ----
     background_tasks.add_task(run_drift_check, df[predictor.features], reference_df[predictor.features], "v1")
+    DASHBOARD_JSON = "reports/evidently/drift_report.json"
 
+    # After computing drift_for_chart
+    dashboard_payload = {
+        "n_rows": len(results),
+        "results": results,
+        "drift": drift_for_chart
+    }
+
+    # Write JSON for dashboard frontend
+    os.makedirs(os.path.dirname(DASHBOARD_JSON), exist_ok=True)
+    # atomic write to avoid read/write collision
+    import tempfile
+    tmp_path = DASHBOARD_JSON + ".tmp"
+    with open(tmp_path, "w") as f:
+        json.dump(dashboard_payload, f, indent=2)
+    os.replace(tmp_path, DASHBOARD_JSON)
+
+    
     return JSONResponse({"n_rows": len(results), "results": results, "drift": drift_for_chart})
 
 

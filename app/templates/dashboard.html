@@ -61,5 +61,44 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
     }
 });
 </script>
+<div id="drift-chart"></div>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+async function fetchDashboardData() {
+    try {
+        const resp = await fetch("/dashboard/data");
+        const json = await resp.json();
+        if(json.status === "ok") {
+            const driftData = json.data.drift;
+            const columns = driftData.map(d => d.column);
+            const scores = driftData.map(d => d.score);
+
+            const trace = {
+                x: columns,
+                y: scores,
+                type: 'bar',
+                marker: {color: 'orange'}
+            };
+
+            const layout = {
+                title: 'Drift Scores by Column',
+                yaxis: {title: 'Score'},
+                xaxis: {title: 'Column'}
+            };
+
+            Plotly.newPlot('drift-chart', [trace], layout);
+        } else {
+            console.warn("Dashboard data not available:", json.message);
+        }
+    } catch(err) {
+        console.error("Failed to fetch dashboard data:", err);
+    }
+}
+
+// Fetch every 10 seconds
+fetchDashboardData();
+setInterval(fetchDashboardData, 10000);
+</script>
 </body>
 </html>

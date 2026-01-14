@@ -1,0 +1,42 @@
+{
+  "n_rows": 9000,
+  "results": [],
+  "drift": [
+    {
+      "column": "dataset",
+      "score": 0.25
+    },
+    {
+      "column": "age",
+      "score": 0.02779295163704811
+    },
+    {
+      "column": "bill_amt_aug",
+      "score": 0.05813603880053332
+    },
+    {
+      "column": "bill_amt_sep",
+      "score": 0.05990164393199121
+    },
+    {
+      "column": "credit_limit",
+      "score": 0.10919756738678622
+    },
+    {
+      "column": "pay_amt_aug",
+      "score": 0.03387021661566681
+    },
+    {
+      "column": "pay_amt_sep",
+      "score": 0.03218554602837802
+    },
+    {
+      "column": "pay_delay_aug",
+      "score": 0.08452784641205481
+    },
+    {
+      "column": "pay_delay_sep",
+      "score": 0.10437369569624884
+    }
+  ]
+}
