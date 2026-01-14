@@ -11,7 +11,7 @@ license: mit
 
 # Under Construction
 
-Build a production-ready ML inference service with post-deployment drift detection, governance, and alerting, demonstrating real MLOps practices rather than offline modeling.
+Building a production-ready ML inference service with post-deployment drift detection, governance, and alerting, demonstrating real MLOps practices rather than offline modeling.
 
 py -3.9 -m venv .venv
 

@@ -1,3 +1,5 @@
+# app/inference/predictor.py
+
 # model.predict wrapper
 import json
 import joblib
@@ -10,6 +12,8 @@ class Predictor:
         self.model = joblib.load(MODEL_PATH)
         with open(FEATURES_PATH, "r") as f:
             self.features = json.load(f)
+
+        self.model_version = "v1"
 
     def predict(self, df):
         X = df[self.features]

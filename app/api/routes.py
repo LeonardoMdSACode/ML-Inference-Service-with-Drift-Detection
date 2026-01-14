@@ -9,15 +9,17 @@ from app.monitoring.drift import run_drift_check
 from app.monitoring.governance import run_governance_checks
 
 import pandas as pd
-import numpy as np  # for numeric handling
+import numpy as np
+import os
 
 templates = Jinja2Templates(directory="app/templates")
-
 router = APIRouter()
 predictor = Predictor()
 
+# Production log file
+PROD_LOG = "data/production/predictions_log.csv"
 
-# CSV upload & prediction
+
 @router.post("/predict")
 async def predict_file(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     df = pd.read_csv(file.file)
@@ -38,13 +40,11 @@ async def predict_file(background_tasks: BackgroundTasks, file: UploadFile = Fil
             "risk_level": "High" if proba >= 0.75 else "Medium" if proba >= 0.5 else "Low"
         })
 
-    # ---- Drift: run once immediately to return chart data ----
+    # ---- Drift: immediate for frontend ----
     reference_df = pd.read_csv("models/v1/reference_data.csv")
-
-    # Correctly get numeric drift scores per column
     _, drift_dict = run_drift_check(df[predictor.features], reference_df[predictor.features], "v1")
 
-    # Ensure numeric drift values safe for frontend Plotly chart
+    # Safe numeric drift values for chart
     drift_for_chart = []
     for col, score in drift_dict.items():
         try:
@@ -55,19 +55,30 @@ async def predict_file(background_tasks: BackgroundTasks, file: UploadFile = Fil
             score_value = 0.0
         drift_for_chart.append({"column": col, "score": score_value})
 
-    # Schedule full drift in background as before
+    # ---- Append predictions to production log ----
+    df_log = df.copy()
+    df_log["prediction"] = preds
+    df_log["probability"] = probas
+    df_log["model_version"] = predictor.model_version
+    df_log["timestamp"] = pd.Timestamp.utcnow()
+
+    os.makedirs(os.path.dirname(PROD_LOG), exist_ok=True)
+    if not os.path.exists(PROD_LOG):
+        df_log.to_csv(PROD_LOG, index=False)
+    else:
+        df_log.to_csv(PROD_LOG, mode="a", header=False, index=False)
+
+    # ---- Background full drift check ----
     background_tasks.add_task(run_drift_check, df[predictor.features], reference_df[predictor.features], "v1")
 
     return JSONResponse({"n_rows": len(results), "results": results, "drift": drift_for_chart})
 
 
-# Health
 @router.get("/health")
 def health():
     return {"status": "ok"}
 
 
-# Manual drift run
 @router.get("/run-drift")
 def run_drift():
     current_df = load_production_data()
@@ -75,7 +86,6 @@ def run_drift():
     return {"status": "drift_check_completed", "report_path": report_path}
 
 
-# Monitoring pipeline
 @router.get("/monitoring/run")
 def monitoring_run(background_tasks: BackgroundTasks, model_version: str = "v1"):
     current_data = pd.read_csv("data/processed/current_data.csv")
@@ -87,7 +97,6 @@ def monitoring_run(background_tasks: BackgroundTasks, model_version: str = "v1")
     return {"status": "monitoring triggered", "model_version": model_version}
 
 
-# Dashboard
 @router.get("/dashboard")
 def dashboard(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
