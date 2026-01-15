@@ -1,42 +1,42 @@
 {
-  "n_rows": 20,
+  "n_rows": 49,
   "results": [],
   "drift": [
     {
       "column": "dataset",
-      "score": 1.0
+      "score": 0.875
     },
     {
       "column": "age",
-      "score": 0.47511682619708956
+      "score": 0.12214288274828489
     },
     {
       "column": "bill_amt_aug",
-      "score": 0.18806444456731744
+      "score": 0.1877720945230529
     },
     {
       "column": "bill_amt_sep",
-      "score": 0.24552730613716447
+      "score": 0.1831324309791122
     },
     {
       "column": "credit_limit",
-      "score": 0.36053044124390277
+      "score": 0.12909345216279436
     },
     {
       "column": "pay_amt_aug",
-      "score": 0.17193500059085817
+      "score": 0.09496917676150422
     },
     {
       "column": "pay_amt_sep",
-      "score": 0.6302425864834968
+      "score": 0.11305641528205504
     },
     {
       "column": "pay_delay_aug",
-      "score": 0.2880354597906329
+      "score": 0.10691001097105937
     },
     {
       "column": "pay_delay_sep",
-      "score": 0.37250685167671616
+      "score": 0.12464531235635479
     }
   ]
 }
