@@ -13,7 +13,7 @@ REFERENCE_PATH = "models/v1/reference_data.csv"
 PROD_LOG_PATH = "data/production/predictions_log.csv"
 DASHBOARD_JSON = "reports/evidently/drift_report.json"
 
-MAX_ROWS = 5000
+MAX_ROWS = 5000  # rolling window
 os.makedirs(os.path.dirname(DASHBOARD_JSON), exist_ok=True)
 
 async def drift_loop(interval_seconds: int = 10):
@@ -25,12 +25,15 @@ async def drift_loop(interval_seconds: int = 10):
 
             prod_df = pd.read_csv(PROD_LOG_PATH)
 
+            # Retention window
             if len(prod_df) > MAX_ROWS:
                 prod_df = prod_df.tail(MAX_ROWS)
                 prod_df.to_csv(PROD_LOG_PATH, index=False)
 
-            missing = set(predictor.features) - set(prod_df.columns)
-            if missing:
+            # Keep only rows with all required features
+            missing_features = set(predictor.features) - set(prod_df.columns)
+            if missing_features:
+                print(f"Skipping drift check, missing features: {missing_features}")
                 await asyncio.sleep(interval_seconds)
                 continue
 
@@ -41,34 +44,37 @@ async def drift_loop(interval_seconds: int = 10):
 
             reference_df = pd.read_csv(REFERENCE_PATH)
 
+            # ---- Run drift on features only ----
             _, drift_dict = run_drift_check(
                 prod_df[predictor.features],
                 reference_df[predictor.features],
                 model_version="v1"
             )
 
-            # ---- RECENT PREDICTIONS FIX ----
-            recent_results = []
-            if "prediction" in prod_df.columns:
-                recent_results = (
-                    prod_df[["prediction"]]
-                    .tail(10)
-                    .to_dict(orient="records")
-                )
+            # ---- Populate predictions for dashboard ----
+            results = []
+            if "model_prediction" in prod_df.columns and "model_probability" in prod_df.columns:
+                for i, row in prod_df.tail(50).iterrows():  # last 50 rows
+                    results.append({
+                        "row": i,
+                        "prediction": "Default" if row["model_prediction"] == 1 else "No Default",
+                        "probability": round(float(row["model_probability"]), 4),
+                        "risk_level": row.get("model_risk_level", "Unknown")
+                    })
 
             dashboard_payload = {
                 "n_rows": len(prod_df),
-                "results": recent_results,
+                "results": results,
                 "drift": [
                     {"column": col, "score": float(score)}
                     for col, score in drift_dict.items()
                 ],
             }
 
-            tmp = DASHBOARD_JSON + ".tmp"
-            with open(tmp, "w") as f:
+            tmp_path = DASHBOARD_JSON + ".tmp"
+            with open(tmp_path, "w") as f:
                 json.dump(dashboard_payload, f, indent=2)
-            os.replace(tmp, DASHBOARD_JSON)
+            os.replace(tmp_path, DASHBOARD_JSON)
 
         except Exception as e:
             print("Drift loop error:", e)
