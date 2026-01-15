@@ -97,6 +97,6 @@ async def predict_file(background_tasks: BackgroundTasks, file: UploadFile = Fil
 def health():
     return {"status": "ok"}
 
-@router.get("/dashboard")
+@router.get("/")
 def dashboard(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})

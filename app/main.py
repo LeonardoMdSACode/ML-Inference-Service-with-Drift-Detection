@@ -132,7 +132,6 @@ from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
     tasks = [
         asyncio.create_task(traffic_loop()),
         asyncio.create_task(drift_loop(10))
