@@ -97,16 +97,6 @@ async def predict_file(background_tasks: BackgroundTasks, file: UploadFile = Fil
 def health():
     return {"status": "ok"}
 
-
-@router.get("/run-drift")
-def run_drift():
-    current_df = load_production_data()
-    from app.monitoring.drift import run_drift_check
-    reference_df = pd.read_csv("models/v1/reference_data.csv")
-    _, drift_dict = run_drift_check(current_df[predictor.features], reference_df[predictor.features])
-    return {"status": "drift_check_completed", "drift": drift_dict}
-
-
 @router.get("/dashboard")
 def dashboard(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})

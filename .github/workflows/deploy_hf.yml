@@ -1,0 +1,65 @@
+name: Deploy to Hugging Face Space
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Configure git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Ensure Git LFS is installed
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git-lfs
+          git lfs install
+
+      - name: Ensure .gitattributes for images
+        run: |
+          git lfs track "images/**" || true
+          echo "images/** filter=lfs diff=lfs merge=lfs -text" >> .gitattributes || true
+          git add .gitattributes || true
+          git commit -m "ci: add gitattributes" || true
+
+      - name: Prepare repository for pre-deploy commit
+        run: |
+          git add -A
+          git diff --cached --quiet || git commit -m "ci: pre-deploy commit" || echo "no changes"
+
+      - name: Build Docker container for HF Spaces
+        run: |
+          docker build -t hf-space-classifier:latest .
+
+      - name: Push to Hugging Face Space (via HTTPS)
+        env:
+          HF_USERNAME: ${{ secrets.HF_USERNAME }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE_REPO: ${{ secrets.HF_SPACE_REPO }}
+        run: |
+          if [ -z "$HF_USERNAME" ] || [ -z "$HF_TOKEN" ] || [ -z "$HF_SPACE_REPO" ]; then
+            echo "ERROR: Missing secrets HF_USERNAME, HF_TOKEN, HF_SPACE_REPO"
+            exit 1
+          fi
+
+          git remote remove hf-space || true
+          git remote add hf-space "https://${HF_USERNAME}:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE_REPO}.git"
+          git push --force hf-space HEAD:main
+
+      - name: Done
+        run: echo "Pushed to Hugging Face Space"

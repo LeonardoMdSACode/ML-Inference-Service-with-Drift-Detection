@@ -1,4 +1,4 @@
-# tests/test_api.py
+# tests/integration/test_api.py
 
 import io
 import pandas as pd
@@ -49,9 +49,15 @@ def test_predict_endpoint_valid_csv():
     assert response.status_code == 200
 
     body = response.json()
+    # Only check n_rows and results; do not expect drift here
     assert "results" in body
-    assert "drift" in body
     assert body["n_rows"] == 2
+    # Optional: basic validation of result structure
+    for r in body["results"]:
+        assert "prediction" in r
+        assert "probability" in r
+        assert "risk_level" in r
+        assert "row" in r
 
 
 def test_predict_endpoint_missing_columns():

@@ -65,21 +65,6 @@ async function fetchDashboardData() {
 // Fetch every 10 seconds
 fetchDashboardData();
 setInterval(fetchDashboardData, 10000);
-
-// File upload handler
-document.getElementById("upload-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const fileInput = e.target.file.files[0];
-    if (fileInput) {
-        const formData = new FormData();
-        formData.append("file", fileInput);
-
-        const response = await fetch("/predict", { method: "POST", body: formData });
-        const data = await response.json();
-        document.getElementById("predictions").innerHTML =
-            `<pre>${JSON.stringify(data.results, null, 2)}</pre>`;
-    }
-});
 </script>
 </body>
 </html>
