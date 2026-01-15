@@ -1,5 +1,5 @@
 {
-  "n_rows": 8,
+  "n_rows": 20,
   "results": [],
   "drift": [
     {
@@ -8,35 +8,35 @@
     },
     {
       "column": "age",
-      "score": 0.8679104867707123
+      "score": 0.47511682619708956
     },
     {
       "column": "bill_amt_aug",
-      "score": 0.23085843753803348
+      "score": 0.18806444456731744
     },
     {
       "column": "bill_amt_sep",
-      "score": 0.37457217443848057
+      "score": 0.24552730613716447
     },
     {
       "column": "credit_limit",
-      "score": 0.36873847560130574
+      "score": 0.36053044124390277
     },
     {
       "column": "pay_amt_aug",
-      "score": 0.20876449446182804
+      "score": 0.17193500059085817
     },
     {
       "column": "pay_amt_sep",
-      "score": 0.27529913358402724
+      "score": 0.6302425864834968
     },
     {
       "column": "pay_delay_aug",
-      "score": 0.32956762578626103
+      "score": 0.2880354597906329
     },
     {
       "column": "pay_delay_sep",
-      "score": 0.4885655407858251
+      "score": 0.37250685167671616
     }
   ]
 }

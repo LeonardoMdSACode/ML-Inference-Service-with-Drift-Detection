@@ -26,61 +26,64 @@ uvicorn app.main:app --reload
 # Repo Structure
 
 ml-inference-drift-service/
-│
-├── app/
-│   ├── main.py                  # FastAPI entrypoint
-│   ├── api/
-│   │   ├── routes.py             # /predict, /health, /dashboard
-│   │   └── schemas.py            # Pydantic input/output schemas
-│   │
-│   ├── core/
-│   │   ├── config.py             # env vars, paths, thresholds
-│   │   ├── logging.py            # SQLite + file logging
-│   │   └── model_registry.py     # model loading/versioning
-│   │
-│   ├── inference/
-│   │   ├── predictor.py          # model.predict wrapper
-│   │   └── preprocessing.py      # feature handling
-│   │
-│   ├── monitoring/
-│   │   ├── drift.py              # Evidently logic
-│   │   ├── metrics.py            # feature stats extraction
-│   │   └── alerts.py             # threshold evaluation
-│   │
-│   ├── db/
-│   │   ├── session.py            # SQLite connection
-│   │   └── models.py             # ORM-style tables (optional)
-│   │
-│   ├── templates/
-│   │   └── dashboard.html        # Evidently embed + metrics
-│   │
-│   └── static/
-│       └── styles.css
-│
-├── models/
-│   ├── v1/
-│   │   ├── model.pkl
-│   │   └── reference_data.csv
-│   └── v2/
-│       └── ...
-│
-├── scripts/
-│   ├── train.py                  # offline training
-│   ├── evaluate.py               # offline evaluation
-│   └── run_drift_check.py        # batch drift job
-│
-├── reports/
-│   └── evidently/
-│       └── drift_report.html
-│
-├── tests/
-│   ├── test_api.py
-│   ├── test_drift.py
-│   └── test_schemas.py
-│
-├── Dockerfile
-├── Dockerfile.hf                 # HF Spaces–compatible
-├── requirements.txt
-├── requirements-dev.txt
-├── README.md
-└── .env.example
+Dockerfile
+LICENSE
+README.md
+requirements-dev.txt
+requirements.txt
+app/
+    main.py
+    api/
+        background_drift.py
+        dashboard_data.py
+        routes.py
+        schemas.py
+        traffic_daemon.py
+    core/
+        config.py
+        logging.py
+        templates.py
+    inference/
+        predictor.py
+    monitoring/
+        data_loader.py
+        drift.py
+        governance.py
+    static/
+        styles.css
+    templates/
+        dashboard.html
+    utils/
+        alerts.py
+data/
+    processed/
+        credit_default_clean.csv
+        current_data.csv
+    production/
+        predictions_log.csv
+    raw/
+        credit_default.csv
+database/
+logs/
+models/
+    v1/
+        features.json
+        reference_data.csv
+    v2/
+reports/
+    evidently/
+        drift_report.html
+        drift_report.json
+scripts/
+    prepare_data.py
+    simulate_inference.py
+    train.py
+tests/
+    conftest.py
+    integration/
+        test_api.py
+        test_governance.json
+        test_governance.py
+        test_run_drift.py
+    unit/
+        test_schemas.py

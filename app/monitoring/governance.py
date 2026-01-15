@@ -84,8 +84,11 @@ class Governance:
         # Log and send alerts
         for alert in alerts:
             self.log_alert(alert, model_version)
+        try:
             send_email_alert(alert)
             send_slack_alert(alert)
+        except Exception:
+            pass
 
         return alerts
 
