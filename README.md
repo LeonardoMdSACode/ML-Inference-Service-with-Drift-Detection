@@ -49,10 +49,6 @@ ML Inference Service with Drift Detection/
 
 1. Clone the repository:
 
-   ```bash
-   git clone <repo_url>
-   cd ML Inference Service with Drift Detection
-   ```
 2. Create a virtual environment and activate it:
 
    ```bash
@@ -79,7 +75,6 @@ ML Inference Service with Drift Detection/
 2. Open the dashboard:
 
    * Localhost: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
-3. Predictions can be submitted via the API `/predict` endpoint (multipart CSV upload).
 
 ## Testing
 
@@ -94,7 +89,7 @@ ML Inference Service with Drift Detection/
 
 1. **API Layer**: FastAPI routes handle `/predict`, `/dashboard/data` and `/health`. Predictions are appended to `data/production/predictions_log.csv`.
 2. **Inference Layer**: `Predictor` wraps the model, loads features from `FEATURES_PATH`, and performs batch predictions.
-3. **Background Drift Loop**: Continuously monitors recent predictions (rolling window up to 5,000 rows), runs feature-level drift checks, and writes results to `reports/evidently/drift_report.json`.
+3. **Background Drift Loop**: Continuously monitors recent predictions (rolling window up to 9,000 rows), runs feature-level drift checks, and writes results to `reports/evidently/drift_report.json`.
 4. **Governance**: Checks metrics like PSI, F1, and regression accuracy against thresholds and logs alerts. Sends notifications via email or Slack (if configured).
 5. **Dashboard**: Reads `drift_report.json` and displays recent predictions and drift metrics via Plotly charts.
 
@@ -115,7 +110,7 @@ ML Inference Service with Drift Detection/
 
 ## Recommendations / Important Notes
 
-* **CSV Rolling Window**: `MAX_DRIFT_ROWS` limits the predictions log to 5,000 rows. Older rows are removed to prevent oversized files.
+* **CSV Rolling Window**: `MAX_DRIFT_ROWS` limits the predictions log to 9,000 rows. Older rows are removed to prevent oversized files.
 * **Email Alerts**: SMTP server must be configured; otherwise, alert sending will fail.
 * **HF Spaces**: The dashboard runs at `/` endpoint by default for compatibility.
 
