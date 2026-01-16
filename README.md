@@ -1,6 +1,6 @@
 ---
-title: Context-aware NLP classification platform with MCP
-emoji: 🧠
+title: ML Inference Service with Drift Detection
+emoji: 📊
 colorFrom: yellow
 colorTo: red
 sdk: docker
@@ -13,9 +13,13 @@ license: mit
 
 ## Overview
 
-This project is an end-to-end machine learning inference service with post-deployment drift detection and monitoring. It exposes a REST API for model predictions, continuously monitors data for drift using a rolling window, and provides a dashboard to visualize recent predictions and drift metrics.
+This project is an end-to-end machine learning inference service with post-deployment drift detection, monitoring and logging. It exposes a REST API for model predictions, continuously monitors data for drift using a rolling window, and provides a dashboard to visualize recent predictions and drift metrics. It used [kaggle dataset](https://www.kaggle.com/datasets/uciml/default-of-credit-card-clients-dataset?select=UCI_Credit_Card.csv) for initial data, which is then prepared and processed for the model and to use as reference.
 
-The system is designed to be deployed locally via Docker or on Hugging Face Spaces, with minimal dependencies and a simple front-end dashboard.
+The system is designed to run locally on venv python 3.9 or on Hugging Face Spaces, with minimal dependencies and a purposely simple front-end dashboard.
+
+Hugging Face Space: [LeonardoMdSA / ML Inference Service with Drift Detection](https://huggingface.co/spaces/LeonardoMdSA/ML-Inference-Service-with-Drift-Detection)
+
+---
 
 ## Repository Structure
 
@@ -53,6 +57,7 @@ ML Inference Service with Drift Detection/
 
    ```bash
    py 3.9 -m venv .venv
+
    source .venv/bin/activate  # Linux/macOS
    .\.venv\Scripts\activate   # Windows
    ```
@@ -87,7 +92,7 @@ ML Inference Service with Drift Detection/
 
 ## How It Works (Logic Layers)
 
-1. **API Layer**: FastAPI routes handle `/predict`, `/dashboard`, `/health`, and `/run-drift`. Predictions are appended to `data/production/predictions_log.csv`.
+1. **API Layer**: FastAPI routes handle `/predict`, `/dashboard/data` and `/health`. Predictions are appended to `data/production/predictions_log.csv`.
 2. **Inference Layer**: `Predictor` wraps the model, loads features from `FEATURES_PATH`, and performs batch predictions.
 3. **Background Drift Loop**: Continuously monitors recent predictions (rolling window up to 5,000 rows), runs feature-level drift checks, and writes results to `reports/evidently/drift_report.json`.
 4. **Governance**: Checks metrics like PSI, F1, and regression accuracy against thresholds and logs alerts. Sends notifications via email or Slack (if configured).
@@ -97,21 +102,22 @@ ML Inference Service with Drift Detection/
 
 * Python 3.9
 * FastAPI
+* Uvicorn
+* Pydantic 1
+* Jinja2
 * Pandas / NumPy
 * Joblib (for model serialization)
 * Evidently (drift detection)
 * Plotly (frontend charts)
-* SQLite (optional, currently unused)
 * Docker (for containerized deployment)
-* Hugging Face Spaces (optional deployment)
+* Hugging Face Spaces (deployment)
+* GitHub Actions (CI/CD)
 
 ## Recommendations / Important Notes
 
 * **CSV Rolling Window**: `MAX_DRIFT_ROWS` limits the predictions log to 5,000 rows. Older rows are removed to prevent oversized files.
-* **Email Alerts**: SMTP server must be configured; otherwise, alert sending will fail gracefully.
+* **Email Alerts**: SMTP server must be configured; otherwise, alert sending will fail.
 * **HF Spaces**: The dashboard runs at `/` endpoint by default for compatibility.
-* **Database**: `database/app.db` is currently unused and can be removed if desired.
-* **UI File Upload**: The legacy CSV upload field in the dashboard can be removed if batch uploads are not needed.
 
 ## References / Docs
 
@@ -121,9 +127,9 @@ ML Inference Service with Drift Detection/
 
 ## Contact / Author
 
-* Darkray Accel
+* Hugging Face: [https://huggingface.co/LeonardoMdSA](https://huggingface.co/LeonardoMdSA)
 * GitHub: [https://github.com/LeonardoMdSACode](https://github.com/LeonardoMdSACode)
 
-## License
+## MIT License
 
 This project is licensed under the MIT License. See the LICENSE file for details.
